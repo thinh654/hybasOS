@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>hybasOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#141110;
+  --bg-deep:#0D0B0A;
+  --panel:#1D1917;
+  --ink:#F2EBE1;
+  --ink-dim:#8C8177;
+  --ink-faint:#5C534B;
+  --accent:#E08A3C;
+  --accent-soft:#8A5A2C;
+  --accent-glow:rgba(224,138,60,0.16);
+  --groove:rgba(0,0,0,0.45);
+  --groove-hi:rgba(255,255,255,0.05);
+  --line:rgba(242,235,225,0.10);
+  --danger:#D2604A;
+  --ok:#8FA876;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+html,body{height:100%; margin:0; overscroll-behavior:none;}
+body{
+  font-family:'Inter',sans-serif;
+  background:#000;
+  color:var(--ink);
+  overflow:hidden;
+  position:fixed;
+  inset:0;
+}
+
+/* ---- Device ---- */
+#device{
+  position:absolute; inset:0;
+  background:var(--bg);
+  overflow:hidden;
+  touch-action:none;
+  background-image:
+    radial-gradient(circle at 85% 4%, rgba(224,138,60,0.10), transparent 40%),
+    radial-gradient(circle at 10% 90%, rgba(224,138,60,0.05), transparent 35%);
+}
+/* faint noise texture */
+#device::after{
+  content:'';
+  position:absolute; inset:0;
+  pointer-events:none;
+  opacity:0.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay;
+  z-index:1;
+}
+#brightness-overlay{
+  position:absolute; inset:0;
+  background:#000;
+  pointer-events:none;
+  opacity:0;
+  z-index:9000;
+  transition:opacity .08s linear;
+}
+
+/* ---- Status bar ---- */
+#statusbar{
+  position:absolute; top:0; left:0; right:0;
+  height:46px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px; font-weight:500;
+  letter-spacing:.02em;
+  z-index:500;
+  color:var(--ink);
+  overflow:hidden;
+}
+#statusbar::before{
+  content:'';
+  position:absolute; left:0; right:0; top:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+  animation:scan 5s linear infinite;
+}
+@keyframes scan{
+  0%{ transform:translateX(-100%); }
+  100%{ transform:translateX(100%); }
+}
+#statusbar .right{display:flex; align-items:center; gap:10px; font-size:10.5px; color:var(--ink-dim);}
+.batt{
+  width:21px; height:10px; border:1px solid var(--ink-faint); border-radius:2px;
+  position:relative; display:inline-block;
+}
+.batt::after{content:''; position:absolute; right:-3px; top:2.5px; width:2px; height:5px; background:var(--ink-faint); border-radius:0 1px 1px 0;}
+.batt i{position:absolute; inset:1.5px; right:auto; width:70%; background:var(--accent); border-radius:1px; display:block;}
+
+/* ---- Lockscreen ---- */
+#lockscreen{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center;
+  padding-top:16vh;
+  z-index:800;
+  background:var(--bg-deep);
+  transition:transform .35s cubic-bezier(.2,.8,.2,1), opacity .35s ease;
+}
+.lock-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px; letter-spacing:.3em; text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:6px;
+  border:1px solid var(--accent-soft);
+  padding:5px 14px;
+  border-radius:3px;
+  background:var(--accent-glow);
+}
+.lock-clock{
+  font-family:'JetBrains Mono',monospace;
+  font-weight:600;
+  font-size:72px;
+  line-height:1;
+  letter-spacing:-.01em;
+  margin-top:28px;
+  font-variant-numeric:tabular-nums;
+}
+.lock-date{
+  margin-top:12px;
+  font-size:13px;
+  color:var(--ink-dim);
+  font-weight:500;
+  letter-spacing:.02em;
+}
+.lock-divider{
+  width:40px; height:1px; background:var(--line); margin:22px 0;
+}
+.lock-status{
+  display:flex; gap:18px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.1em;
+}
+.lock-status span b{ color:var(--ok); }
+.lock-hint{
+  position:absolute; bottom:60px; left:0; right:0;
+  text-align:center;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  color:var(--ink-faint);
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+}
+.chevron{
+  width:18px; height:18px;
+  border-top:2px solid var(--accent);
+  border-right:2px solid var(--accent);
+  transform:rotate(-45deg);
+  animation:bob 1.8s ease-in-out infinite;
+  opacity:.8;
+}
+@keyframes bob{
+  0%,100%{transform:rotate(-45deg) translateY(0);}
+  50%{transform:rotate(-45deg) translateY(-8px);}
+}
+
+/* ---- Home screen ---- */
+#homescreen{
+  position:absolute; inset:0;
+  padding-top:70px;
+  padding-bottom:58px;
+  z-index:100;
+}
+#app-grid{
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:24px 12px;
+  padding:14px 20px 130px;
+  height:100%;
+  overflow-y:auto;
+}
+.app-icon{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  cursor:pointer;
+}
+.app-icon .glyph{
+  width:56px; height:56px;
+  border-radius:16px 16px 16px 4px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  box-shadow:inset 0 1px 0 var(--groove-hi), inset 0 -2px 4px var(--groove);
+  transition:transform .15s ease;
+  color:var(--ink);
+}
+.app-icon:active .glyph{ transform:scale(.9); }
+.app-icon span{ font-size:10.5px; color:var(--ink-dim); font-weight:500; letter-spacing:.01em; }
+
+/* Dock */
+#dock{
+  position:absolute; bottom:64px; left:14px; right:14px;
+  height:74px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:20px;
+  box-shadow:inset 0 1px 0 var(--groove-hi), 0 8px 22px rgba(0,0,0,0.35);
+  display:flex; align-items:center; justify-content:space-around;
+  z-index:200;
+}
+#dock .app-icon .glyph{ width:50px; height:50px; background:var(--bg-deep); }
+#dock .app-icon span{ display:none; }
+
+/* ---- App window ---- */
+.app-window{
+  position:absolute; inset:0;
+  background:var(--bg);
+  transform:translateY(100%);
+  transition:transform .38s cubic-bezier(.2,.85,.25,1);
+  z-index:1000;
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+.app-window.open{ transform:translateY(0); }
+.app-window.dragging{ transition:none; }
+
+.app-header{
+  padding:54px 20px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--line);
+  flex-shrink:0;
+  position:relative;
+}
+.app-header h1{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:21px; margin:0; font-weight:600;
+}
+.app-header .eyebrow{
+  position:absolute; top:30px; left:20px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:9.5px; letter-spacing:.15em; text-transform:uppercase; color:var(--accent);
+}
+.app-close{
+  width:32px; height:32px; border-radius:8px;
+  background:var(--panel); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--ink-dim); font-size:15px; cursor:pointer;
+}
+.app-body{
+  flex:1; overflow-y:auto;
+  padding:20px 20px 76px;
+}
+.app-drag-handle{
+  position:absolute; top:8px; left:50%; transform:translateX(-50%);
+  width:38px; height:4px; border-radius:2px; background:var(--ink-faint);
+  z-index:10;
+}
+
+/* ---- Settings groups ---- */
+.setting-group{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  margin-bottom:14px;
+  overflow:hidden;
+  box-shadow:inset 0 1px 0 var(--groove-hi);
+}
+.setting-row{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:15px 16px;
+  border-bottom:1px solid var(--line);
+  font-size:14px;
+}
+.setting-row:last-child{ border-bottom:none; }
+.setting-label{ display:flex; align-items:center; gap:12px; }
+.setting-icon{
+  width:28px; height:28px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; background:var(--accent-glow); color:var(--accent);
+}
+.slider-row{ flex-direction:column; align-items:stretch; gap:10px; }
+.slider-row .setting-label{ justify-content:space-between; width:100%; }
+input[type=range]{
+  -webkit-appearance:none; width:100%; height:5px; border-radius:3px;
+  background:var(--groove); outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:20px; height:20px; border-radius:5px;
+  background:var(--accent); cursor:pointer;
+  box-shadow:0 0 0 5px var(--accent-glow);
+}
+.toggle{
+  width:44px; height:25px; border-radius:13px;
+  background:var(--groove);
+  position:relative; cursor:pointer; flex-shrink:0;
+  transition:background .2s ease;
+  border:1px solid var(--line);
+}
+.toggle.on{ background:var(--accent-soft); border-color:var(--accent); }
+.toggle::after{
+  content:''; position:absolute; top:2px; left:2px;
+  width:19px; height:19px; border-radius:4px; background:var(--ink);
+  transition:transform .2s ease;
+}
+.toggle.on::after{ transform:translateX(18px); background:var(--accent); }
+.value-dim{ color:var(--ink-dim); font-size:12.5px; font-family:'JetBrains Mono',monospace; }
+
+/* ---- Notes ---- */
+.note-item{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:12px; padding:14px 16px; margin-bottom:10px;
+  border-left:2px solid var(--accent);
+}
+.note-item h3{ margin:0 0 6px; font-size:14px; font-family:'Space Grotesk',sans-serif; }
+.note-item p{ margin:0; font-size:12.5px; color:var(--ink-dim); line-height:1.5; }
+#note-input{
+  width:100%; min-height:100px; background:var(--panel); border:1px solid var(--line);
+  border-radius:12px; color:var(--ink); padding:14px; font-size:14px; font-family:inherit;
+  resize:none; margin-bottom:12px;
+}
+.btn-primary{
+  background:var(--accent); color:#241304; border:none; border-radius:10px;
+  padding:13px; font-size:14px; font-weight:600; width:100%; cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;
+}
+.btn-danger{
+  background:transparent; color:var(--danger); border:1px solid var(--danger);
+  border-radius:10px; padding:11px; font-size:13px; font-weight:600; width:100%; cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;
+}
+
+/* ---- Calculator ---- */
+.calc-display{
+  text-align:right; font-family:'JetBrains Mono',monospace;
+  font-size:46px; font-weight:600; padding:26px 8px; word-break:break-all;
+  min-height:100px; color:var(--accent);
+}
+.calc-grid{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:9px;
+}
+.calc-btn{
+  aspect-ratio:1; border-radius:12px; border:1px solid var(--line);
+  background:var(--panel); color:var(--ink);
+  font-size:19px; font-family:'JetBrains Mono',monospace; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:inset 0 1px 0 var(--groove-hi);
+}
+.calc-btn.op{ background:var(--accent-glow); color:var(--accent); border-color:var(--accent-soft); }
+.calc-btn.eq{ background:var(--accent); color:#241304; }
+.calc-btn:active{ opacity:.7; }
+
+/* ---- Files ---- */
+.file-row{
+  display:flex; align-items:center; gap:14px;
+  padding:13px 4px; border-bottom:1px solid var(--line);
+}
+.file-icon{
+  width:38px; height:38px; border-radius:9px; background:var(--panel);
+  border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:16px;
+}
+.file-name{ font-size:13.5px; font-weight:500; font-family:'JetBrains Mono',monospace; }
+.file-meta{ font-size:11.5px; color:var(--ink-dim); }
+
+/* ---- Music ---- */
+.music-art{
+  width:100%; aspect-ratio:1; border-radius:16px; margin-bottom:22px;
+  background:linear-gradient(135deg, var(--accent-soft), var(--bg-deep));
+  display:flex; align-items:center; justify-content:center; font-size:48px;
+  border:1px solid var(--line);
+  color:var(--accent);
+}
+.music-title{ font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:600; text-align:center; }
+.music-artist{ text-align:center; color:var(--ink-dim); font-size:12.5px; margin-top:4px; margin-bottom:22px;}
+.music-progress{ height:3px; border-radius:2px; background:var(--groove); margin-bottom:22px; position:relative;}
+.music-progress i{ position:absolute; left:0; top:0; bottom:0; width:38%; background:var(--accent); border-radius:2px; }
+.music-controls{ display:flex; align-items:center; justify-content:center; gap:32px; }
+.music-controls .play{
+  width:60px; height:60px; border-radius:16px; background:var(--accent);
+  display:flex; align-items:center; justify-content:center; font-size:22px; color:#241304; cursor:pointer;
+}
+.music-controls .side{ font-size:20px; color:var(--ink-dim); cursor:pointer; }
+
+/* ---- Camera ---- */
+.cam-view{
+  flex:1; background:var(--bg-deep);
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+}
+.cam-view::before{
+  content:'◎'; font-size:56px; color:var(--ink-faint);
+}
+.cam-grid{ position:absolute; inset:20px; border:1px solid var(--line); }
+.cam-bar{
+  padding:24px; display:flex; align-items:center; justify-content:center;
+}
+.cam-shutter{
+  width:68px; height:68px; border-radius:50%; border:3px solid var(--ink); background:transparent; cursor:pointer;
+}
+.cam-shutter:active{ background:var(--ink); }
+
+/* ---- Control Center ---- */
+#control-center{
+  position:absolute; top:0; left:0; right:0;
+  background:rgba(20,17,16,0.92);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--line);
+  border-radius:0 0 20px 20px;
+  transform:translateY(-100%);
+  padding:50px 16px 20px;
+  z-index:3500;
+  box-shadow:0 20px 50px rgba(0,0,0,0.5);
+}
+#control-center.dragging{ transition:none; }
+#control-center.snapped{ transition:transform .32s cubic-bezier(.2,.85,.25,1); }
+.cc-handle{
+  position:absolute; top:8px; left:50%; transform:translateX(-50%);
+  width:38px; height:4px; border-radius:2px; background:var(--ink-faint);
+}
+.cc-toggles{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:10px;
+  margin-bottom:18px;
+}
+.cc-tile{
+  aspect-ratio:1; border-radius:14px;
+  background:var(--panel); border:1px solid var(--line);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:6px; font-size:18px; cursor:pointer;
+  transition:background .15s ease, color .15s ease, border-color .15s ease;
+  color:var(--ink-dim);
+}
+.cc-tile span{ font-size:9px; font-weight:600; letter-spacing:.02em; color:inherit; font-family:'JetBrains Mono',monospace; }
+.cc-tile.active{
+  background:var(--accent); border-color:var(--accent); color:#241304;
+}
+.cc-slider-block{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:14px; padding:13px 15px; margin-bottom:10px;
+}
+.cc-slider-block .cc-row{
+  display:flex; align-items:center; justify-content:space-between;
+  font-size:11.5px; color:var(--ink-dim); margin-bottom:9px; font-weight:600;
+  font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:.05em;
+}
+.cc-slider-block .cc-row b{ color:var(--ink); font-weight:600; }
+.cc-track{
+  position:relative; height:36px; border-radius:10px;
+  background:var(--groove); overflow:hidden; touch-action:none;
+}
+.cc-track .cc-fill{
+  position:absolute; left:0; top:0; bottom:0;
+  background:linear-gradient(90deg, var(--accent-soft), var(--accent));
+  border-radius:10px;
+}
+.cc-track .cc-icon{
+  position:absolute; left:12px; top:50%; transform:translateY(-50%);
+  font-size:14px; z-index:2; color:#241304;
+}
+
+/* ---- Bottom nav bar ---- */
+#navbar{
+  position:absolute; bottom:0; left:0; right:0;
+  height:54px;
+  display:flex; align-items:center; justify-content:space-around;
+  z-index:4000;
+  background:linear-gradient(to top, rgba(13,11,10,0.7), transparent);
+}
+.nav-btn{
+  width:64px; height:44px;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--ink-dim);
+  cursor:pointer;
+}
+.nav-btn:active{ color:var(--accent); }
+.nav-back svg, .nav-recents svg{ width:19px; height:19px; }
+.nav-home-dot{
+  width:20px; height:20px; border-radius:5px;
+  border:2px solid var(--ink-dim);
+}
+.nav-btn:active .nav-home-dot{ border-color:var(--accent); background:var(--accent-glow); }
+
+/* ---- Recents ---- */
+#recents{
+  position:absolute; inset:0;
+  background:var(--bg-deep);
+  z-index:2600;
+  display:none;
+  flex-direction:column;
+  padding:56px 18px 88px;
+}
+#recents.show{ display:flex; }
+.recents-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin:0 4px 16px;
+}
+.recents-head h2{
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim);
+  text-transform:uppercase; letter-spacing:.15em; margin:0; font-weight:600;
+}
+.clear-all-btn{
+  font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--danger);
+  text-transform:uppercase; letter-spacing:.08em; cursor:pointer;
+  border:1px solid var(--danger); border-radius:7px; padding:6px 10px;
+  background:rgba(210,96,74,0.08);
+}
+#recents-list{ flex:1; overflow-y:auto; }
+.recent-card{
+  background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:18px; margin-bottom:12px; display:flex; align-items:center; gap:14px; cursor:pointer;
+  position:relative;
+  box-shadow:inset 0 1px 0 var(--groove-hi);
+}
+.recent-card .glyph{ width:40px; height:40px; border-radius:10px 10px 10px 3px; display:flex; align-items:center; justify-content:center; font-size:17px; background:var(--accent-glow); color:var(--accent); flex-shrink:0;}
+.recent-card .rc-info{ flex:1; min-width:0; }
+.recent-card .rc-name{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14.5px; }
+.recent-card .rc-sub{ font-size:11.5px; color:var(--ink-faint); margin-top:2px; font-family:'JetBrains Mono',monospace; }
+.recent-delete{
+  width:32px; height:32px; border-radius:8px;
+  background:rgba(210,96,74,0.1); border:1px solid var(--danger);
+  color:var(--danger); display:flex; align-items:center; justify-content:center;
+  font-size:15px; flex-shrink:0; cursor:pointer;
+}
+.recent-empty{ color:var(--ink-faint); font-size:12.5px; text-align:center; margin-top:60px; font-family:'JetBrains Mono',monospace; }
+
+/* Swipe-up-from-bottom-edge hint zone (invisible, for gesture) */
+#edge-swipe-zone{
+  position:absolute; bottom:0; left:0; right:0; height:24px;
+  z-index:3900;
+  touch-action:none;
+}
+</style>
+</head>
+<body>
+
+<div id="device">
+
+  <div id="statusbar">
+    <span id="clock-mini">9:41</span>
+    <div class="right">
+      <span id="net-label">HYBAS·NET</span>
+      <span class="batt"><i></i></span>
+    </div>
+  </div>
+
+  <!-- LOCKSCREEN -->
+  <div id="lockscreen">
+    <div class="lock-tag">hybasOS</div>
+    <div class="lock-clock" id="lock-clock">9:41</div>
+    <div class="lock-date" id="lock-date">Thứ Năm, 2 Tháng 7</div>
+    <div class="lock-divider"></div>
+    <div class="lock-status">
+      <span>PIN <b>●</b></span>
+      <span>NET <b>●</b></span>
+      <span>SYS <b>●</b></span>
+    </div>
+    <div class="lock-hint">
+      <span>Vuốt lên để mở khoá</span>
+      <div class="chevron"></div>
+    </div>
+  </div>
+
+  <!-- HOMESCREEN -->
+  <div id="homescreen">
+    <div id="app-grid"></div>
+    <div id="dock"></div>
+  </div>
+
+  <!-- RECENTS -->
+  <div id="recents">
+    <div class="recents-head">
+      <h2>Ứng dụng gần đây</h2>
+      <div class="clear-all-btn" id="clear-all-recents">Xoá tất cả</div>
+    </div>
+    <div id="recents-list"></div>
+  </div>
+
+  <!-- CONTROL CENTER -->
+  <div id="control-center">
+    <div class="cc-handle"></div>
+    <div class="cc-toggles" id="cc-toggles"></div>
+    <div class="cc-slider-block">
+      <div class="cc-row"><span>Độ sáng</span><b id="cc-brightness-val">80%</b></div>
+      <div class="cc-track" id="cc-brightness-track">
+        <div class="cc-fill" id="cc-brightness-fill" style="width:80%"></div>
+        <span class="cc-icon">☀</span>
+      </div>
+    </div>
+    <div class="cc-slider-block">
+      <div class="cc-row"><span>Âm lượng</span><b id="cc-volume-val">60%</b></div>
+      <div class="cc-track" id="cc-volume-track">
+        <div class="cc-fill" id="cc-volume-fill" style="width:60%"></div>
+        <span class="cc-icon">♪</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invisible edge zone: swipe up from bottom edge opens Recents -->
+  <div id="edge-swipe-zone"></div>
+
+  <!-- BOTTOM NAV -->
+  <div id="navbar">
+    <div class="nav-btn nav-back" id="nav-back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+    <div class="nav-btn nav-home" id="nav-home">
+      <div class="nav-home-dot"></div>
+    </div>
+    <div class="nav-btn nav-recents" id="nav-recents">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>
+    </div>
+  </div>
+
+  <div id="brightness-overlay"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= CLOCK ================= */
+function pad(n){ return n<10 ? '0'+n : n; }
+function updateClock(){
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  const str = pad(h)+':'+pad(m);
+  document.getElementById('clock-mini').textContent = str;
+  document.getElementById('lock-clock').textContent = str;
+  const days = ['Chủ Nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
+  document.getElementById('lock-date').textContent = days[now.getDay()]+', '+now.getDate()+' Tháng '+(now.getMonth()+1);
+}
+updateClock();
+setInterval(updateClock, 15000);
+
+/* ================= STATE ================= */
+const state = {
+  brightness: 80,
+  volume: 60,
+  quickToggles: { airplane:false, wifi:true, bluetooth:false, dnd:false },
+  openAppsHistory: [],
+  notes: [
+    {title:'Chào mừng đến hybasOS', body:'Vuốt lên từ cạnh dưới hoặc chạm nút ô vuông để xem ứng dụng gần đây. Vuốt xuống từ trên để mở bảng điều khiển.'},
+    {title:'Ý tưởng', body:'hybasOS: hệ điều hành ảo chạy trong trình duyệt, cử chỉ vuốt thật, giao diện lấy cảm hứng từ thiết bị vật lý.'}
+  ]
+};
+
+function applyBrightness(){
+  const overlay = document.getElementById('brightness-overlay');
+  const op = (100 - state.brightness) / 100 * 0.88;
+  overlay.style.opacity = op.toFixed(3);
+  syncBrightnessUI();
+}
+function setBrightness(val){
+  state.brightness = Math.max(10, Math.min(100, Math.round(val)));
+  applyBrightness();
+}
+function setVolume(val){
+  state.volume = Math.max(0, Math.min(100, Math.round(val)));
+  syncVolumeUI();
+}
+function syncBrightnessUI(){
+  const fill = document.getElementById('cc-brightness-fill');
+  const val = document.getElementById('cc-brightness-val');
+  if(fill){ fill.style.width = state.brightness+'%'; }
+  if(val){ val.textContent = state.brightness+'%'; }
+  const s = document.getElementById('brightness-slider');
+  const sv = document.getElementById('brightness-val');
+  if(s){ s.value = state.brightness; }
+  if(sv){ sv.textContent = state.brightness+'%'; }
+}
+function syncVolumeUI(){
+  const fill = document.getElementById('cc-volume-fill');
+  const val = document.getElementById('cc-volume-val');
+  if(fill){ fill.style.width = state.volume+'%'; }
+  if(val){ val.textContent = state.volume+'%'; }
+  const s = document.getElementById('volume-slider');
+  const sv = document.getElementById('volume-val');
+  if(s){ s.value = state.volume; }
+  if(sv){ sv.textContent = state.volume+'%'; }
+}
+applyBrightness();
+syncVolumeUI();
+
+/* ================= APP REGISTRY ================= */
+const apps = [
+  {id:'settings', name:'Cài đặt', glyph:'⚙', dock:true},
+  {id:'files', name:'Tệp', glyph:'▤'},
+  {id:'notes', name:'Ghi chú', glyph:'✎', dock:true},
+  {id:'calculator', name:'Máy tính', glyph:'÷', dock:true},
+  {id:'music', name:'Nhạc', glyph:'♫'},
+  {id:'camera', name:'Camera', glyph:'◎', dock:true},
+  {id:'about', name:'Giới thiệu', glyph:'ℹ'},
+];
+const appDisplayNames = {};
+apps.forEach(a=> appDisplayNames[a.id] = {name:a.name, glyph:a.glyph});
+
+const grid = document.getElementById('app-grid');
+const dock = document.getElementById('dock');
+
+apps.forEach(app=>{
+  const icon = document.createElement('div');
+  icon.className = 'app-icon';
+  icon.innerHTML = '<div class="glyph">'+app.glyph+'</div><span>'+app.name+'</span>';
+  icon.addEventListener('click', ()=> openApp(app.id));
+  grid.appendChild(icon);
+
+  if(app.dock){
+    const dicon = document.createElement('div');
+    dicon.className = 'app-icon';
+    dicon.innerHTML = '<div class="glyph">'+app.glyph+'</div>';
+    dicon.addEventListener('click', ()=> openApp(app.id));
+    dock.appendChild(dicon);
+  }
+});
+
+/* ================= APP WINDOW BUILDER ================= */
+const device = document.getElementById('device');
+let currentWindow = null;
+let currentAppId = null;
+
+function windowShell(eyebrow, title, bodyHTML){
+  const win = document.createElement('div');
+  win.className = 'app-window';
+  win.innerHTML = `
+    <div class="app-drag-handle"></div>
+    <div class="app-header">
+      <div class="eyebrow">${eyebrow}</div>
+      <h1>${title}</h1>
+      <div class="app-close">✕</div>
+    </div>
+    <div class="app-body">${bodyHTML}</div>
+  `;
+  win.querySelector('.app-close').addEventListener('click', closeApp);
+  return win;
+}
+
+function renderSettings(){
+  return `
+    <div class="setting-group">
+      <div class="setting-row slider-row">
+        <div class="setting-label">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="setting-icon">☀</div><span>Độ sáng màn hình</span>
+          </div>
+          <span class="value-dim" id="brightness-val">${state.brightness}%</span>
+        </div>
+        <input type="range" min="10" max="100" value="${state.brightness}" id="brightness-slider">
+      </div>
+      <div class="setting-row slider-row">
+        <div class="setting-label">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="setting-icon">♪</div><span>Âm lượng</span>
+          </div>
+          <span class="value-dim" id="volume-val">${state.volume}%</span>
+        </div>
+        <input type="range" min="0" max="100" value="${state.volume}" id="volume-slider">
+      </div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-row">
+        <div class="setting-label"><div class="setting-icon">✈</div><span>Chế độ máy bay</span></div>
+        <div class="toggle" id="toggle-airplane"></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><div class="setting-icon">🔒</div><span>Tự động khoá</span></div>
+        <div class="toggle on" id="toggle-lock"></div>
+      </div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-row">
+        <div class="setting-label"><span>Phiên bản</span></div>
+        <span class="value-dim">hybasOS 2.0</span>
+      </div>
+    </div>
+  `;
+}
+function wireSettings(win){
+  win.querySelector('#brightness-slider').addEventListener('input', e=> setBrightness(parseInt(e.target.value)));
+  win.querySelector('#volume-slider').addEventListener('input', e=> setVolume(parseInt(e.target.value)));
+  win.querySelectorAll('.toggle').forEach(t=> t.addEventListener('click', ()=> t.classList.toggle('on')));
+}
+
+function renderNotes(){
+  return `<textarea id="note-input" placeholder="Viết ghi chú mới..."></textarea>
+  <button class="btn-primary" id="note-add">Lưu ghi chú</button>
+  <div style="height:18px"></div>
+  <div id="notes-list"></div>`;
+}
+function wireNotes(win){
+  function renderList(){
+    const list = win.querySelector('#notes-list');
+    list.innerHTML = state.notes.map(n=>
+      `<div class="note-item"><h3>${escapeHtml(n.title)}</h3><p>${escapeHtml(n.body)}</p></div>`
+    ).join('');
+  }
+  win.querySelector('#note-add').addEventListener('click', ()=>{
+    const val = win.querySelector('#note-input').value.trim();
+    if(!val) return;
+    const title = val.split('\n')[0].slice(0,40) || 'Ghi chú mới';
+    state.notes.unshift({title, body: val});
+    win.querySelector('#note-input').value = '';
+    renderList();
+  });
+  renderList();
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderCalculator(){
+  return `
+    <div class="calc-display" id="calc-display">0</div>
+    <div class="calc-grid">
+      <button class="calc-btn op" data-k="C">C</button>
+      <button class="calc-btn op" data-k="±">±</button>
+      <button class="calc-btn op" data-k="%">%</button>
+      <button class="calc-btn op" data-k="/">÷</button>
+      <button class="calc-btn" data-k="7">7</button>
+      <button class="calc-btn" data-k="8">8</button>
+      <button class="calc-btn" data-k="9">9</button>
+      <button class="calc-btn op" data-k="*">×</button>
+      <button class="calc-btn" data-k="4">4</button>
+      <button class="calc-btn" data-k="5">5</button>
+      <button class="calc-btn" data-k="6">6</button>
+      <button class="calc-btn op" data-k="-">−</button>
+      <button class="calc-btn" data-k="1">1</button>
+      <button class="calc-btn" data-k="2">2</button>
+      <button class="calc-btn" data-k="3">3</button>
+      <button class="calc-btn op" data-k="+">+</button>
+      <button class="calc-btn" data-k="0" style="grid-column:span 2;">0</button>
+      <button class="calc-btn" data-k=".">.</button>
+      <button class="calc-btn eq" data-k="=">=</button>
+    </div>
+  `;
+}
+function wireCalculator(win){
+  let expr = '';
+  const disp = win.querySelector('#calc-display');
+  win.querySelectorAll('.calc-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const k = btn.dataset.k;
+      if(k==='C'){ expr=''; disp.textContent='0'; return; }
+      if(k==='±'){
+        try{ const v = Function('"use strict";return('+ (expr||'0') +')')(); expr = String(-v); disp.textContent = expr; }catch(e){}
+        return;
+      }
+      if(k==='%'){
+        try{ const v = Function('"use strict";return('+ (expr||'0') +')')(); expr = String(v/100); disp.textContent = expr; }catch(e){}
+        return;
+      }
+      if(k==='='){
+        try{
+          const safe = expr.replace(/[^-()\d/*+.]/g,'');
+          const v = Function('"use strict";return('+safe+')')();
+          disp.textContent = Number.isFinite(v) ? String(Math.round(v*1e8)/1e8) : 'Lỗi';
+          expr = String(v);
+        }catch(e){ disp.textContent = 'Lỗi'; expr=''; }
+        return;
+      }
+      expr += k;
+      disp.textContent = expr;
+    });
+  });
+}
+
+function renderFiles(){
+  const files = [
+    {icon:'▤', name:'ghi_chu_du_an.txt', meta:'2 KB · Hôm nay'},
+    {icon:'🖼', name:'anh-nen.png', meta:'1.2 MB · Hôm qua'},
+    {icon:'♫', name:'playlist.m3u', meta:'0.4 KB · 3 ngày trước'},
+    {icon:'📄', name:'bao-cao-quy2.pdf', meta:'840 KB · 1 tuần trước'},
+    {icon:'▤', name:'code_syntaxai.html', meta:'56 KB · 2 tuần trước'},
+  ];
+  return files.map(f=>`
+    <div class="file-row">
+      <div class="file-icon">${f.icon}</div>
+      <div>
+        <div class="file-name">${f.name}</div>
+        <div class="file-meta">${f.meta}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderMusic(){
+  return `
+    <div class="music-art">♫</div>
+    <div class="music-title">Ánh Sáng Cuối Ngày</div>
+    <div class="music-artist">hybas Sound System</div>
+    <div class="music-progress"><i></i></div>
+    <div class="music-controls">
+      <div class="side">⏮</div>
+      <div class="play" id="play-btn">▶</div>
+      <div class="side">⏭</div>
+    </div>
+  `;
+}
+function wireMusic(win){
+  const btn = win.querySelector('#play-btn');
+  let playing = false;
+  btn.addEventListener('click', ()=>{
+    playing = !playing;
+    btn.textContent = playing ? '❚❚' : '▶';
+  });
+}
+
+function renderAbout(){
+  return `
+    <div class="setting-group">
+      <div class="setting-row"><span>Tên hệ điều hành</span><span class="value-dim">hybasOS</span></div>
+      <div class="setting-row"><span>Phiên bản</span><span class="value-dim">2.0.0</span></div>
+      <div class="setting-row"><span>Nền tảng</span><span class="value-dim">Web / Trình duyệt</span></div>
+    </div>
+    <p style="color:var(--ink-dim); font-size:12.5px; line-height:1.6; padding:0 4px;">
+      hybasOS là một hệ điều hành mô phỏng chạy hoàn toàn trong trình duyệt. Mọi cử chỉ vuốt — mở khoá, đóng ứng dụng, điều hướng, mở ứng dụng gần đây — đều được xử lý bằng sự kiện chạm thật.
+    </p>
+  `;
+}
+
+function openApp(id){
+  if(currentWindow) return;
+  closeRecents();
+  currentAppId = id;
+  state.openAppsHistory = state.openAppsHistory.filter(a=>a!==id);
+  state.openAppsHistory.unshift(id);
+
+  let win;
+  const eb = 'HYBASOS // APP';
+  if(id === 'settings'){
+    win = windowShell(eb, 'Cài đặt', renderSettings());
+    device.appendChild(win); requestAnimationFrame(()=>win.classList.add('open'));
+    wireSettings(win);
+  } else if(id === 'notes'){
+    win = windowShell(eb, 'Ghi chú', renderNotes());
+    device.appendChild(win); requestAnimationFrame(()=>win.classList.add('open'));
+    wireNotes(win);
+  } else if(id === 'calculator'){
+    win = windowShell(eb, 'Máy tính', renderCalculator());
+    device.appendChild(win); requestAnimationFrame(()=>win.classList.add('open'));
+    wireCalculator(win);
+  } else if(id === 'files'){
+    win = windowShell(eb, 'Tệp', renderFiles());
+    device.appendChild(win); requestAnimationFrame(()=>win.classList.add('open'));
+  } else if(id === 'music'){
+    win = windowShell(eb, 'Nhạc', renderMusic());
+    device.appendChild(win); requestAnimationFrame(()=>win.classList.add('open'));
+    wireMusic(win);
+  } else if(id === 'camera'){
+    win = windowShell(eb, 'Camera', '');
+    win.querySelector('.app-body').style.display = 'none';
+    const camWrap = document.createElement('div');
+    camWrap.style.flex = '1';
+    camWrap.style.display = 'flex';
+    camWrap.style.flexDirection = 'column';
+    camWrap.innerHTML = `<div class="cam-view"><div class="cam-grid"></div></div>
+      <div class="cam-bar"><div class="cam-shutter" id="shutter"></div></div>`;
+    win.appendChild(camWrap);
+    device.appendChild(win); requestAnimationFrame(()=>win.classList.add('open'));
+    win.querySelector('#shutter').addEventListener('click', function(){
+      this.style.transform='scale(.85)';
+      setTimeout(()=>this.style.transform='scale(1)',120);
+    });
+  } else if(id === 'about'){
+    win = windowShell(eb, 'Giới thiệu', renderAbout());
+    device.appendChild(win); requestAnimationFrame(()=>win.classList.add('open'));
+  }
+  currentWindow = win;
+  attachSwipeToClose(win);
+}
+
+function closeApp(){
+  if(!currentWindow) return;
+  const win = currentWindow;
+  win.classList.remove('open');
+  currentWindow = null;
+  currentAppId = null;
+  setTimeout(()=>{ win.remove(); }, 380);
+}
+
+/* ================= SWIPE-TO-CLOSE for app windows ================= */
+function attachSwipeToClose(win){
+  let startY = 0, dy = 0, dragging = false;
+  const handle = win.querySelector('.app-drag-handle');
+  const header = win.querySelector('.app-header');
+
+  function onStart(y){ startY = y; dy = 0; dragging = true; win.classList.add('dragging'); }
+  function onMove(y){
+    if(!dragging) return;
+    dy = Math.max(0, y - startY);
+    win.style.transform = `translateY(${dy}px)`;
+  }
+  function onEnd(){
+    if(!dragging) return;
+    dragging = false;
+    win.classList.remove('dragging');
+    if(dy > 120){ win.style.transform = ''; closeApp(); }
+    else { win.style.transform = ''; }
+  }
+
+  [handle, header].forEach(el=>{
+    el.addEventListener('touchstart', e=> onStart(e.touches[0].clientY), {passive:true});
+    el.addEventListener('touchmove', e=> onMove(e.touches[0].clientY), {passive:true});
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('mousedown', e=>{
+      onStart(e.clientY);
+      const mv = ev=> onMove(ev.clientY);
+      const up = ()=>{ onEnd(); document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+      document.addEventListener('mousemove', mv);
+      document.addEventListener('mouseup', up);
+    });
+  });
+}
+
+/* ================= LOCKSCREEN SWIPE-UP TO UNLOCK ================= */
+const lockscreen = document.getElementById('lockscreen');
+(function(){
+  let startY=0, dy=0, dragging=false;
+  const threshold = 90;
+
+  function onStart(y){ startY=y; dy=0; dragging=true; lockscreen.style.transition='none'; }
+  function onMove(y){
+    if(!dragging) return;
+    dy = Math.min(0, y - startY);
+    lockscreen.style.transform = `translateY(${dy}px)`;
+    lockscreen.style.opacity = String(1 - Math.min(1, Math.abs(dy)/400));
+  }
+  function onEnd(){
+    if(!dragging) return;
+    dragging = false;
+    lockscreen.style.transition = '';
+    if(dy < -threshold){
+      lockscreen.style.transform = 'translateY(-100%)';
+      lockscreen.style.opacity = '0';
+      lockscreen.style.pointerEvents = 'none';
+    } else {
+      lockscreen.style.transform = '';
+      lockscreen.style.opacity = '1';
+    }
+  }
+
+  lockscreen.addEventListener('touchstart', e=> onStart(e.touches[0].clientY), {passive:true});
+  lockscreen.addEventListener('touchmove', e=> onMove(e.touches[0].clientY), {passive:true});
+  lockscreen.addEventListener('touchend', onEnd);
+  lockscreen.addEventListener('mousedown', e=>{
+    onStart(e.clientY);
+    const mv = ev=> onMove(ev.clientY);
+    const up = ()=>{ onEnd(); document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+    document.addEventListener('mousemove', mv);
+    document.addEventListener('mouseup', up);
+  });
+})();
+
+document.getElementById('statusbar').addEventListener('dblclick', ()=>{
+  lockscreen.style.transform = '';
+  lockscreen.style.opacity = '1';
+  lockscreen.style.pointerEvents = 'auto';
+});
+
+/* ================= CONTROL CENTER: swipe down from top ================= */
+const cc = document.getElementById('control-center');
+let ccIsOpen = false;
+
+function renderQuickToggles(){
+  const defs = [
+    {key:'airplane', icon:'✈', label:'MÁY BAY'},
+    {key:'wifi', icon:'▽', label:'WI-FI'},
+    {key:'bluetooth', icon:'◈', label:'BLUETOOTH'},
+    {key:'dnd', icon:'☾', label:'IM LẶNG'},
+  ];
+  const wrap = document.getElementById('cc-toggles');
+  wrap.innerHTML = defs.map(d=>`
+    <div class="cc-tile ${state.quickToggles[d.key] ? 'active':''}" data-key="${d.key}">
+      <span style="font-size:18px;">${d.icon}</span>
+      <span>${d.label}</span>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('.cc-tile').forEach(tile=>{
+    tile.addEventListener('click', ()=>{
+      const k = tile.dataset.key;
+      state.quickToggles[k] = !state.quickToggles[k];
+      tile.classList.toggle('active', state.quickToggles[k]);
+    });
+  });
+}
+renderQuickToggles();
+
+function openControlCenter(){ cc.classList.add('snapped'); cc.style.transform = 'translateY(0)'; ccIsOpen = true; }
+function closeControlCenter(){ cc.classList.add('snapped'); cc.style.transform = 'translateY(-100%)'; ccIsOpen = false; }
+
+(function(){
+  let startY=0, dy=0, dragging=false, startedOpen=false;
+  const openThreshold = 60, closeThreshold = 60;
+  const ccHeight = ()=> cc.offsetHeight;
+
+  function beginDrag(y){ startedOpen = ccIsOpen; startY = y; dy = 0; dragging = true; cc.classList.remove('snapped'); }
+  function moveDrag(y){
+    if(!dragging) return;
+    dy = y - startY;
+    let translate = startedOpen ? Math.min(0, dy) : Math.min(0, -ccHeight() + Math.max(0, dy));
+    cc.style.transform = `translateY(${translate}px)`;
+  }
+  function endDrag(){
+    if(!dragging) return;
+    dragging = false;
+    if(startedOpen){ (dy < -closeThreshold) ? closeControlCenter() : openControlCenter(); }
+    else { (dy > openThreshold) ? openControlCenter() : closeControlCenter(); }
+  }
+
+  const topZone = document.getElementById('statusbar');
+  topZone.style.pointerEvents = 'auto';
+  topZone.addEventListener('touchstart', e=> beginDrag(e.touches[0].clientY), {passive:true});
+  topZone.addEventListener('touchmove', e=> moveDrag(e.touches[0].clientY), {passive:true});
+  topZone.addEventListener('touchend', endDrag);
+  topZone.addEventListener('mousedown', e=>{
+    beginDrag(e.clientY);
+    const mv = ev=> moveDrag(ev.clientY);
+    const up = ()=>{ endDrag(); document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+    document.addEventListener('mousemove', mv);
+    document.addEventListener('mouseup', up);
+  });
+
+  function isInteractive(el){ return el.closest('.cc-track, .cc-tile'); }
+  cc.addEventListener('touchstart', e=>{ if(isInteractive(e.target)) return; beginDrag(e.touches[0].clientY); }, {passive:true});
+  cc.addEventListener('touchmove', e=>{ if(!dragging) return; moveDrag(e.touches[0].clientY); }, {passive:true});
+  cc.addEventListener('touchend', ()=>{ if(!dragging) return; endDrag(); });
+  cc.addEventListener('mousedown', e=>{
+    if(isInteractive(e.target)) return;
+    beginDrag(e.clientY);
+    const mv = ev=> moveDrag(ev.clientY);
+    const up = ()=>{ endDrag(); document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+    document.addEventListener('mousemove', mv);
+    document.addEventListener('mouseup', up);
+  });
+})();
+
+function wireCCTrack(trackId, setVal){
+  const track = document.getElementById(trackId);
+  function calc(clientX){
+    const rect = track.getBoundingClientRect();
+    let pct = (clientX - rect.left) / rect.width * 100;
+    setVal(Math.max(0, Math.min(100, pct)));
+  }
+  let active = false;
+  track.addEventListener('touchstart', e=>{ active=true; calc(e.touches[0].clientX); }, {passive:true});
+  track.addEventListener('touchmove', e=>{ if(active) calc(e.touches[0].clientX); }, {passive:true});
+  track.addEventListener('touchend', ()=> active=false);
+  track.addEventListener('mousedown', e=>{
+    active = true; calc(e.clientX);
+    const mv = ev=>{ if(active) calc(ev.clientX); };
+    const up = ()=>{ active=false; document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+    document.addEventListener('mousemove', mv);
+    document.addEventListener('mouseup', up);
+  });
+}
+wireCCTrack('cc-brightness-track', v=> setBrightness(Math.max(10,v)));
+wireCCTrack('cc-volume-track', v=> setVolume(v));
+
+/* ================= RECENTS ================= */
+function openRecents(){
+  if(currentWindow){ closeApp(); }
+  closeControlCenter();
+  const rec = document.getElementById('recents');
+  renderRecentsList();
+  rec.classList.add('show');
+}
+function closeRecents(){
+  document.getElementById('recents').classList.remove('show');
+}
+function renderRecentsList(){
+  const list = document.getElementById('recents-list');
+  const clearBtn = document.getElementById('clear-all-recents');
+  if(state.openAppsHistory.length === 0){
+    list.innerHTML = '<div class="recent-empty">Chưa có ứng dụng nào được mở gần đây</div>';
+    clearBtn.style.display = 'none';
+    return;
+  }
+  clearBtn.style.display = 'block';
+  list.innerHTML = state.openAppsHistory.map(id=>{
+    const app = appDisplayNames[id];
+    if(!app) return '';
+    return `<div class="recent-card" data-id="${id}">
+      <div class="glyph">${app.glyph}</div>
+      <div class="rc-info">
+        <div class="rc-name">${app.name}</div>
+        <div class="rc-sub">CHẠM ĐỂ MỞ LẠI</div>
+      </div>
+      <div class="recent-delete" data-id="${id}">✕</div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.recent-card').forEach(card=>{
+    card.addEventListener('click', (e)=>{
+      if(e.target.closest('.recent-delete')) return;
+      const id = card.dataset.id;
+      closeRecents();
+      setTimeout(()=> openApp(id), 150);
+    });
+  });
+  list.querySelectorAll('.recent-delete').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      state.openAppsHistory = state.openAppsHistory.filter(a=>a!==id);
+      renderRecentsList();
+    });
+  });
+}
+document.getElementById('clear-all-recents').addEventListener('click', ()=>{
+  state.openAppsHistory = [];
+  renderRecentsList();
+});
+
+/* ================= NAV BAR ================= */
+document.getElementById('nav-back').addEventListener('click', ()=>{
+  if(document.getElementById('recents').classList.contains('show')){ closeRecents(); return; }
+  if(currentWindow){ closeApp(); }
+});
+document.getElementById('nav-home').addEventListener('click', ()=>{
+  closeRecents();
+  if(currentWindow){ closeApp(); }
+});
+document.getElementById('nav-recents').addEventListener('click', ()=>{
+  const rec = document.getElementById('recents');
+  rec.classList.contains('show') ? closeRecents() : openRecents();
+});
+
+/* ================= SWIPE UP FROM BOTTOM EDGE -> OPEN RECENTS ================= */
+(function(){
+  const edgeZone = document.getElementById('edge-swipe-zone');
+  let startY = 0, dragging = false, triggered = false;
+  const threshold = 40; // px of upward movement needed
+
+  function onStart(y){
+    startY = y; dragging = true; triggered = false;
+  }
+  function onMove(y){
+    if(!dragging || triggered) return;
+    const dy = startY - y; // positive = moved up
+    if(dy > threshold){
+      triggered = true;
+      dragging = false;
+      openRecents();
+    }
+  }
+  function onEnd(){ dragging = false; }
+
+  edgeZone.addEventListener('touchstart', e=> onStart(e.touches[0].clientY), {passive:true});
+  edgeZone.addEventListener('touchmove', e=> onMove(e.touches[0].clientY), {passive:true});
+  edgeZone.addEventListener('touchend', onEnd);
+  edgeZone.addEventListener('mousedown', e=>{
+    onStart(e.clientY);
+    const mv = ev=> onMove(ev.clientY);
+    const up = ()=>{ onEnd(); document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+    document.addEventListener('mousemove', mv);
+    document.addEventListener('mouseup', up);
+  });
+})();
+
+})();
+</script>
+</body>
+</html>
