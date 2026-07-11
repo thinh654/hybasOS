@@ -1654,7 +1654,11 @@ Nguyên tắc:
         return new Promise(resolve => {
           setTimeout(() => {
             const lower = prompt.toLowerCase();
-            if (lower.includes("python") || lower.includes("rest api") || lower.includes("api quản lý")) {
+            if (
+              (lower.includes("python") || lower.includes("rest api") || lower.includes("api quản lý"))
+              && !lower.includes("debug")
+              && !lower.includes("lỗi")
+            ) {
               resolve(`## Bản mẫu Python REST API
 
 Bạn có thể bắt đầu với **FastAPI** vì cú pháp rõ ràng, có type validation và tự sinh tài liệu OpenAPI.
