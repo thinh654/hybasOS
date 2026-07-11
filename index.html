@@ -1284,6 +1284,14 @@ Nguyên tắc:
         config: loadConfig()
       };
 
+      const hadPendingMessages = state.chats.some(chat => chat.messages.some(message => message.pending));
+      if (hadPendingMessages) {
+        state.chats.forEach(chat => {
+          chat.messages = chat.messages.filter(message => !message.pending);
+        });
+        saveChats();
+      }
+
       const els = {
         sidebar: document.getElementById("sidebar"),
         sidebarOverlay: document.getElementById("sidebar-overlay"),
@@ -1636,10 +1644,15 @@ Nguyên tắc:
         if (!response.ok) {
           let detail = "";
           try {
-            const body = await response.json();
-            detail = body.error?.message || JSON.stringify(body);
+            const text = await response.text();
+            try {
+              const body = JSON.parse(text);
+              detail = body.error?.message || text;
+            } catch {
+              detail = text;
+            }
           } catch {
-            detail = await response.text();
+            detail = "";
           }
           throw new Error(`API trả về ${response.status}${detail ? `: ${detail}` : ""}`);
         }
