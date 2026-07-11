@@ -4,7 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Syntax Codex — trợ lý AI chuyên sâu về lập trình và tư duy logic.">
+  <meta name="theme-color" content="#080b0d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Syntax Codex — AI Coding Assistant</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -347,6 +354,21 @@
       justify-content: center;
       padding: 0;
       font-size: 15px;
+    }
+
+    .icon-button[hidden] {
+      display: none;
+    }
+
+    .install-button {
+      width: auto;
+      gap: 7px;
+      padding: 0 10px;
+    }
+
+    .install-button b {
+      font-size: 10px;
+      font-weight: 600;
     }
 
     .workspace {
@@ -1078,6 +1100,15 @@
         display: none;
       }
 
+      .install-button {
+        width: 34px;
+        padding: 0;
+      }
+
+      .install-button b {
+        display: none;
+      }
+
       .composer-wrap {
         padding-right: 10px;
         padding-bottom: 10px;
@@ -1151,6 +1182,7 @@
           </button>
         </div>
         <div class="topbar-actions">
+          <button class="icon-button install-button" id="install-app" title="Cài Syntax Codex" aria-label="Cài Syntax Codex" hidden><span>↧</span><b>Cài app</b></button>
           <button class="icon-button" id="export-button" title="Xuất cuộc trò chuyện">⇩</button>
           <button class="icon-button" id="clear-button" title="Xóa nội dung">⌫</button>
         </div>
@@ -1275,6 +1307,8 @@ Nguyên tắc:
         logic: "Giúp tôi phân tích một bài toán logic phức tạp"
       };
 
+      let deferredInstallPrompt = null;
+
       const state = {
         chats: loadChats(),
         activeChatId: null,
@@ -1311,6 +1345,7 @@ Nguyên tắc:
         attachment: document.getElementById("attachment"),
         attachmentName: document.getElementById("attachment-name"),
         fileInput: document.getElementById("file-input"),
+        installApp: document.getElementById("install-app"),
         toast: document.getElementById("toast")
       };
 
@@ -1896,11 +1931,16 @@ Hiện bạn đang dùng **Demo Engine**. Mở **Cấu hình AI** để kết n�
             ""
           ])
         ].join("\n");
+        const filename = `${chat.title.replace(/[^\p{L}\p{N}-]+/gu, "-").toLowerCase() || "syntax-codex"}.md`;
+        if (window.SyntaxCodexAndroid?.downloadMarkdown) {
+          window.SyntaxCodexAndroid.downloadMarkdown(filename, markdown);
+          return;
+        }
         const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.download = `${chat.title.replace(/[^\p{L}\p{N}-]+/gu, "-").toLowerCase() || "syntax-codex"}.md`;
+        anchor.download = filename;
         anchor.click();
         URL.revokeObjectURL(url);
       }
@@ -1923,6 +1963,25 @@ Hiện bạn đang dùng **Demo Engine**. Mở **Cấu hình AI** để kết n�
       document.getElementById("clear-button").addEventListener("click", clearCurrentChat);
       document.getElementById("attach-button").addEventListener("click", () => els.fileInput.click());
       document.getElementById("remove-attachment").addEventListener("click", clearAttachment);
+      els.installApp.addEventListener("click", async () => {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        els.installApp.hidden = true;
+      });
+
+      window.addEventListener("beforeinstallprompt", event => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        els.installApp.hidden = false;
+      });
+
+      window.addEventListener("appinstalled", () => {
+        deferredInstallPrompt = null;
+        els.installApp.hidden = true;
+        showToast("Syntax Codex đã được cài.");
+      });
 
       els.settingsModal.addEventListener("click", event => {
         if (event.target === els.settingsModal) closeSettings();
@@ -1980,6 +2039,18 @@ Hiện bạn đang dùng **Demo Engine**. Mở **Cấu hình AI** để kết n�
       } else {
         state.activeChatId = state.chats[0].id;
         renderAll();
+      }
+
+      if ("serviceWorker" in navigator && (
+        location.protocol === "https:"
+        || location.hostname === "localhost"
+        || location.hostname === "127.0.0.1"
+      )) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./service-worker.js").catch(() => {
+            showToast("Không thể bật chế độ ngoại tuyến.");
+          });
+        });
       }
     })();
   </script>

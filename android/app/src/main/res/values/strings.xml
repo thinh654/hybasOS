@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Syntax Codex</string>
+    <string name="export_success">Đã lưu Markdown vào Downloads.</string>
+    <string name="export_error">Không thể lưu tệp Markdown.</string>
+    <string name="file_picker_error">Không thể mở trình chọn tệp.</string>
+    <string name="link_error">Không thể mở liên kết.</string>
+    <string name="storage_permission_error">Cần quyền lưu trữ để xuất tệp.</string>
+</resources>
